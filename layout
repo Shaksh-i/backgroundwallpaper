@@ -17,6 +17,8 @@ import {
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
+import LoginIcon from "@mui/icons-material/Login";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import AppNotificationIcon from "./AppNotificationIcon";
 import ProfileMenu from "./ProfileMenu";
 import axios from "../services/api";
@@ -105,20 +107,21 @@ export default function Layout({ children, user, setUser, logout }) {
           background: "linear-gradient(to right, #6a1b9a, #8e24aa)",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           borderBottom: "2px solid #ede7f6",
-          height: 100,
+          height: 80, // ✅ reduced height
           justifyContent: "center",
         }}
       >
         <Toolbar
           sx={{ display: "flex", justifyContent: "space-between", px: 2 }}
         >
+          {/* Left Section */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <IconButton
               edge="start"
               color="inherit"
               onClick={() => isLoggedIn && setOpen(true)}
               disabled={!isLoggedIn}
-              sx={{ fontSize: 28 }}
+              sx={{ fontSize: 26 }}
             >
               <MenuIcon fontSize="inherit" />
             </IconButton>
@@ -127,7 +130,7 @@ export default function Layout({ children, user, setUser, logout }) {
               component="img"
               src="/logo.png"
               alt="HerSync Logo"
-              sx={{ height: 60, width: 60 }}
+              sx={{ height: 55, width: 55 }}
             />
 
             <Typography
@@ -136,39 +139,60 @@ export default function Layout({ children, user, setUser, logout }) {
                 fontWeight: "bold",
                 fontFamily: "'Poppins', sans-serif",
                 color: "#fff",
+                letterSpacing: "0.5px",
               }}
             >
               HerSync
             </Typography>
           </Box>
 
+          {/* Right Section */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             {isLoggedIn && <AppNotificationIcon user={user} />}
 
             {!isLoggedIn ? (
               <>
+                {/* ✅ Gradient Login Button */}
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   component={Link}
                   to="/login"
+                  startIcon={<LoginIcon />}
                   sx={{
+                    background: "linear-gradient(45deg, #7b1fa2, #9c27b0)",
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #8e24aa, #ba68c8)",
+                    },
                     color: "#fff",
-                    borderColor: "#fff",
-                    backgroundColor: "transparent",
-                    "&:hover": { backgroundColor: "#fff", color: "#6a1b9a" },
+                    borderRadius: "10px",
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    px: 3,
+                    py: 1,
+                    fontFamily: "'Poppins', sans-serif",
                   }}
                 >
                   Login
                 </Button>
+
+                {/* ✅ Gradient Signup Button */}
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   component={Link}
                   to="/signup"
+                  startIcon={<PersonAddAltIcon />}
                   sx={{
+                    background: "linear-gradient(45deg, #ab47bc, #8e24aa)",
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #9c27b0, #ce93d8)",
+                    },
                     color: "#fff",
-                    borderColor: "#fff",
-                    backgroundColor: "transparent",
-                    "&:hover": { backgroundColor: "#fff", color: "#6a1b9a" },
+                    borderRadius: "10px",
+                    fontWeight: "bold",
+                    textTransform: "none",
+                    px: 3,
+                    py: 1,
+                    fontFamily: "'Poppins', sans-serif",
                   }}
                 >
                   Sign Up
@@ -184,11 +208,11 @@ export default function Layout({ children, user, setUser, logout }) {
                   <Avatar
                     src={user?.profilePhoto || ""}
                     sx={{
-                      width: 56,
-                      height: 56,
+                      width: 52,
+                      height: 52,
                       bgcolor: user?.profilePhoto ? "transparent" : "#7b1fa2",
                       fontWeight: 600,
-                      fontSize: 24,
+                      fontSize: 22,
                       color: "#fff",
                       cursor: "pointer",
                       border: "2px solid #fff",
@@ -207,7 +231,7 @@ export default function Layout({ children, user, setUser, logout }) {
                   onClick={logout}
                   title="Logout"
                   sx={{
-                    fontSize: 28,
+                    fontSize: 26,
                     "&:hover": {
                       backgroundColor: "#fff",
                       color: "#6a1b9a",
@@ -222,6 +246,7 @@ export default function Layout({ children, user, setUser, logout }) {
         </Toolbar>
       </AppBar>
 
+      {/* Drawer */}
       {isLoggedIn && (
         <Drawer
           open={open}
@@ -259,7 +284,6 @@ export default function Layout({ children, user, setUser, logout }) {
                         fontWeight: isActive ? "bold" : "normal",
                         fontSize: "1.2rem",
                         fontFamily: "'Poppins', sans-serif",
-                        transition: "color 0.3s ease",
                       }}
                     />
                   </ListItem>
@@ -335,7 +359,6 @@ export default function Layout({ children, user, setUser, logout }) {
                   Stay connected with your cycle, wellness, and self — all in one place.
                 </motion.p>
 
-                {/* ✅ Go to Dashboard Button */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -346,8 +369,8 @@ export default function Layout({ children, user, setUser, logout }) {
                     size="large"
                     onClick={() => navigate("/dashboard")}
                     sx={{
-                      backgroundColor: "#6a1b9a",
-                      "&:hover": { backgroundColor: "#8e24aa" },
+                      background: "linear-gradient(45deg, #7b1fa2, #9c27b0)",
+                      "&:hover": { background: "linear-gradient(45deg, #8e24aa, #ba68c8)" },
                       color: "#fff",
                       borderRadius: "10px",
                       fontWeight: "bold",
