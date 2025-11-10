@@ -1,0 +1,391 @@
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import React, { useEffect, useState } from "react";
+import {
+  fetchCycles,
+  createCycle,
+  deleteCycle,
+  updateCycle,
+} from "../services/api";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  TextField,
+  MenuItem,
+  Paper,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+
+export default function CycleLog({ user }) {
+  const navigate = useNavigate();
+  const [cycles, setCycles] = useState([]);
+  const [form, setForm] = useState({
+    cycle_start_date: "",
+    cycle_end_date: "",
+    period_start_date: "",
+    period_end_date: "",
+    flow_intensity: "medium",
+    notes: "",
+  });
+  const [editId, setEditId] = useState(null);
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  const reload = async () => {
+    try {
+      const res = await fetchCycles();
+      setCycles(res.data || []);
+      console.log("[DEBUG] Cycles:", res.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (!user) {
+    return (
+      <Paper sx={{ p: 4, mt: 4 }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+          Please log in to view your Cycle logs.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  const validateForm = () => {
+    const f = form;
+    if (!f.cycle_start_date) return "Cycle start date is required.";
+    if (f.cycle_end_date && f.cycle_end_date < f.cycle_start_date)
+      return "Cycle end date cannot be before cycle start date.";
+    if (f.period_start_date && f.period_end_date && f.period_end_date < f.period_start_date)
+      return "Period end date cannot be before period start date.";
+    if (
+      f.period_start_date &&
+      f.cycle_start_date &&
+      f.period_start_date < f.cycle_start_date
+    )
+      return "Period start cannot be before cycle start.";
+    if (
+      f.period_end_date &&
+      f.cycle_end_date &&
+      f.period_end_date > f.cycle_end_date
+    )
+      return "Period end cannot be after cycle end.";
+    return null;
+  };
+
+  const submit = async () => {
+    const validationError = validateForm();
+    if (validationError) return alert(validationError);
+
+    const payload = {
+      ...form,
+      cycle_start_date: form.cycle_start_date || null,
+      cycle_end_date: form.cycle_end_date || null,
+      period_start_date: form.period_start_date || null,
+      period_end_date: form.period_end_date || null,
+    };
+
+    try {
+      if (editId) {
+        await updateCycle(editId, payload);
+        alert("Cycle updated successfully");
+      } else {
+        await createCycle(payload);
+        alert("Cycle added successfully");
+      }
+      setForm({
+        cycle_start_date: "",
+        cycle_end_date: "",
+        period_start_date: "",
+        period_end_date: "",
+        flow_intensity: "medium",
+        notes: "",
+      });
+      setEditId(null);
+      await reload();
+    } catch (e) {
+      console.error(e);
+      alert("Something went wrong while saving the data.");
+    }
+  };
+
+  const chartData = [...cycles]
+    .filter((c) => c.cycle_end_date)
+    .sort((a, b) => new Date(a.cycle_start_date) - new Date(b.cycle_start_date))
+    .map((c) => {
+      const start = new Date(c.cycle_start_date);
+      const end = new Date(c.cycle_end_date);
+      const duration = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      return {
+        date: c.cycle_start_date,
+        name: `${c.cycle_start_date} - ${c.cycle_end_date}`,
+        Duration: duration,
+      };
+    });
+
+  return (
+    <Box sx={{ mt: 4 }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{
+          fontWeight: "bold",
+          color: "#6a1b9a",
+          textAlign: "center",
+          mb: 4,
+          background: "linear-gradient(135deg, #e1bee7, #f8bbd0)",
+          padding: 2,
+          borderRadius: 2,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        }}
+      >
+        Cycle & Period Log
+      </Typography>
+
+      {chartData.length > 0 && (
+        <Box
+          sx={{
+            background: "linear-gradient(135deg, #d1c4e9, #f3e5f5)",
+            p: 3,
+            borderRadius: 3,
+            mb: 4,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: "bold",
+              color: "#4a148c",
+              mb: 2,
+              textAlign: "center",
+            }}
+          >
+            Cycle Duration Overview
+          </Typography>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
+            >
+              <CartesianGrid strokeDasharray="4 4" stroke="#aaa" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis
+                label={{
+                  value: "Duration (days)",
+                  angle: -90,
+                  position: "insideLeft",
+                  fontSize: 14,
+                }}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "8px",
+                }}
+                labelFormatter={(label) => {
+                  const item = chartData.find((d) => d.date === label);
+                  return item ? item.name : label;
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="Duration"
+                stroke="#6a1b9a"
+                strokeWidth={3}
+                dot={{ r: 5, stroke: "#4a148c", strokeWidth: 2, fill: "#fff" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      )}
+
+      {/* Form */}
+      <Card
+        sx={{ mb: 4, background: "linear-gradient(135deg, #f8bbd0, #f3e5f5)" }}
+      >
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                label="Cycle Start Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                value={form.cycle_start_date}
+                onChange={(e) =>
+                  setForm({ ...form, cycle_start_date: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                label="Cycle End Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                value={form.cycle_end_date}
+                onChange={(e) =>
+                  setForm({ ...form, cycle_end_date: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                label="Period Start Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                value={form.period_start_date}
+                onChange={(e) =>
+                  setForm({ ...form, period_start_date: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                label="Period End Date"
+                type="date"
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                value={form.period_end_date}
+                onChange={(e) =>
+                  setForm({ ...form, period_end_date: e.target.value })
+                }
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                select
+                label="Flow"
+                value={form.flow_intensity}
+                fullWidth
+                onChange={(e) =>
+                  setForm({ ...form, flow_intensity: e.target.value })
+                }
+              >
+                <MenuItem value="light">Light</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="heavy">Heavy</MenuItem>
+                <MenuItem value="spotting">Spotting</MenuItem>
+              </TextField>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Notes"
+                fullWidth
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Button variant="contained" onClick={submit}>
+                {editId ? "Update Cycle" : "Add Cycle"}
+              </Button>
+              {editId && (
+                <Button
+                  sx={{ ml: 2 }}
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => {
+                    setEditId(null);
+                    setForm({
+                      cycle_start_date: "",
+                      cycle_end_date: "",
+                      period_start_date: "",
+                      period_end_date: "",
+                      flow_intensity: "medium",
+                      notes: "",
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Display Cards */}
+      <Grid container spacing={3}>
+        {(cycles || []).map((c) => (
+          <Grid key={c.id} item xs={12} sm={6} md={4}>
+            <Card
+              sx={{
+                background: "linear-gradient(135deg, #f3e5f5, #e1bee7)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+            >
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Cycle: {c.cycle_start_date} → {c.cycle_end_date || "ongoing"}
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  Period:{" "}
+                  {c.period_start_date
+                    ? `${c.period_start_date} → ${c.period_end_date || "ongoing"}`
+                    : "Not logged"}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Flow: {c.flow_intensity}
+                </Typography>
+                <Typography variant="body2">{c.notes}</Typography>
+              </CardContent>
+              <Box sx={{ p: 2, display: "flex", gap: 1 }}>
+                <Button
+                  color="primary"
+                  variant="outlined"
+                  onClick={() => {
+                    setEditId(c.id);
+                    setForm({
+                      cycle_start_date: c.cycle_start_date,
+                      cycle_end_date: c.cycle_end_date || "",
+                      period_start_date: c.period_start_date || "",
+                      period_end_date: c.period_end_date || "",
+                      flow_intensity: c.flow_intensity || "medium",
+                      notes: c.notes || "",
+                    });
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  color="error"
+                  variant="outlined"
+                  onClick={async () => {
+                    if (window.confirm("Delete this cycle?")) {
+                      await deleteCycle(c.id);
+                      await reload();
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </Box>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+}
